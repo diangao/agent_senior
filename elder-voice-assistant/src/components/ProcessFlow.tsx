@@ -18,28 +18,28 @@ const initialNodes: Node[] = [
   {
     id: 'start',
     type: 'input',
-    data: { label: '开始对话' },
+    data: { label: 'Start Conversation' },
     position: { x: 250, y: 0 },
   },
   {
     id: 'voice',
-    data: { label: '语音输入' },
+    data: { label: 'Voice input' },
     position: { x: 250, y: 100 },
   },
   {
     id: 'process',
-    data: { label: '处理请求' },
+    data: { label: 'Process request' },
     position: { x: 250, y: 200 },
   },
   {
     id: 'automation',
-    data: { label: '自动化执行' },
+    data: { label: 'Automation' },
     position: { x: 250, y: 300 },
   },
   {
     id: 'complete',
     type: 'output',
-    data: { label: '完成' },
+    data: { label: 'Completed' },
     position: { x: 250, y: 400 },
   },
 ];

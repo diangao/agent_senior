@@ -3,6 +3,8 @@ import axios from 'axios';
 
 const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
+console.log('API Key loaded:', OPENAI_API_KEY ? 'YES' : 'NO'); // Debug log
+
 interface AIResponse {
   text: string;
   action?: {
@@ -12,15 +14,27 @@ interface AIResponse {
 }
 
 export async function processAIResponse(userInput: string): Promise<AIResponse> {
+  // For testing, just return a mock response
+  return {
+    text: 'Understood, please make sure your device is turned on and within range.',
+    action: {
+      type: 'CONNECT_DEVICE',
+      params: {
+        deviceType: 'bloodPressure'
+      }
+    }
+  };
+
+
   try {
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: '你是一个专门帮助老年人使用智能设备的助手。请用简单、清晰的语言回答。'
+            content: 'You are a helpful assistant for elderly users, providing support for health management and device setup.'
           },
           {
             role: 'user',
@@ -37,7 +51,6 @@ export async function processAIResponse(userInput: string): Promise<AIResponse> 
       }
     );
 
-    // 解析 AI 响应，识别可能的操作指令
     const aiText = response.data.choices[0].message.content;
     const action = parseActionFromText(aiText);
 
@@ -47,22 +60,24 @@ export async function processAIResponse(userInput: string): Promise<AIResponse> 
     };
   } catch (error) {
     console.error('AI processing error:', error);
-    throw new Error('AI处理失败，请重试');
+    return {
+      text: '抱歉，我现在遇到了一些问题。请稍后再试。',
+    };
   }
+  
 }
 
 function parseActionFromText(text: string): AIResponse['action'] | undefined {
-  // 根据关键词识别可能的操作
-  if (text.includes('连接设备') || text.includes('配对')) {
+  if (text.includes('Connect Device') || text.includes('Pair Device')) {
     return {
       type: 'CONNECT_DEVICE',
       params: {
-        deviceType: 'bloodPressure'  // 可以根据具体对话内容识别设备类型
+        deviceType: 'bloodPressure'
       }
     };
   }
   
-  if (text.includes('注册') || text.includes('账号')) {
+  if (text.includes('register') || text.includes('account')) {
     return {
       type: 'REGISTER_APP',
       params: {
@@ -71,7 +86,7 @@ function parseActionFromText(text: string): AIResponse['action'] | undefined {
     };
   }
 
-  if (text.includes('通知家人') || text.includes('联系家属')) {
+  if (text.includes('Notify familt') || text.includes('contact family')) {
     return {
       type: 'NOTIFY_FAMILY'
     };
