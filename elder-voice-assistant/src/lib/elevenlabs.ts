@@ -4,25 +4,19 @@ import axios from 'axios';
 const ELEVENLABS_API_KEY = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
 const API_BASE_URL = 'https://api.elevenlabs.io/v1';
 
-// 语音转文字
+// 语音转文字（使用临时的模拟实现，因为 ElevenLabs 目前不提供 STT 服务）
 export async function speechToText(audioBlob: Blob): Promise<string> {
-  const formData = new FormData();
-  formData.append('audio', audioBlob);
-  formData.append('model_id', 'whisper-1');
-
   try {
-    const response = await axios.post(
-      `${API_BASE_URL}/speech-to-text`,
-      formData,
-      {
-        headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
-    
-    return response.data.text;
+    // 创建临时的音频URL用于调试
+    const audioUrl = URL.createObjectURL(audioBlob);
+    console.log('Audio URL created:', audioUrl);
+
+    // 由于 ElevenLabs 不直接提供 STT，这里先返回模拟数据
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve('您好，我需要帮助设置我的智能设备。');
+      }, 1000);
+    });
   } catch (error) {
     console.error('Speech to text error:', error);
     throw new Error('语音识别失败，请重试');
