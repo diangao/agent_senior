@@ -14,83 +14,84 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const recognition = useRef<any>(null);
   const chunks = useRef<Blob[]>([]);
-  const [isRecognitionReady, setIsRecognitionReady] = useState(false);
+  const recordingStartTime = useRef<number>(0);
 
-  // 初始化语音识别
-  const initializeRecognition = () => {
-    if (typeof window !== 'undefined') {
+  const initRecognition = () => {
+    if (typeof window !== 'undefined' && !recognition.current) {
       // @ts-ignore
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition && !recognition.current) {
+      if (SpeechRecognition) {
         recognition.current = new SpeechRecognition();
-        recognition.current.continuous = true;
+        recognition.current.continuous = false;
         recognition.current.interimResults = true;
         recognition.current.lang = 'en-US';
 
-        recognition.current.onstart = () => {
-          console.log('Speech recognition started');
-          setIsRecognitionReady(true);
+        recognition.current.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join(' ');
+          setRecognizedText(transcript);
+          
+          // If this is a final result, trigger completion
+          if (event.results[0].isFinal) {
+            handleRecognitionComplete(transcript);
+          }
         };
 
         recognition.current.onend = () => {
-          console.log('Speech recognition ended');
-          // 如果还在录音但识别停止了，重新启动识别
-          if (isRecording) {
-            console.log('Restarting speech recognition');
+          // Only restart if we're still recording and it's been less than 10 seconds
+          if (isRecording && Date.now() - recordingStartTime.current < 10000) {
             recognition.current.start();
           }
         };
-        
-        recognition.current.onresult = (event: any) => {
-          let finalTranscript = '';
-          let interimTranscript = '';
-
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcript;
-            } else {
-              interimTranscript += transcript;
-            }
-          }
-
-          const currentTranscript = finalTranscript || interimTranscript;
-          setRecognizedText(currentTranscript);
-          console.log('Recognized text:', currentTranscript);
-        };
 
         recognition.current.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          // 如果是 'no-speech' 错误，不需要显示错误消息
-          if (event.error !== 'no-speech') {
-            alert('Speech recognition error: ' + event.error);
+          console.error('Recognition error:', event.error);
+          if (event.error === 'no-speech') {
+            // Restart recognition if no speech was detected
+            if (isRecording) {
+              recognition.current.start();
+            }
           }
         };
-
-        setIsRecognitionReady(true);
       }
     }
   };
 
+  const handleRecognitionComplete = (text: string) => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
+      recognition.current?.stop();
+      setIsRecording(false);
+
+      const blob = new Blob(chunks.current, { type: 'audio/wav' });
+      onRecordingComplete(blob, text);
+      chunks.current = [];
+      setRecognizedText('');
+    }
+  };
+
   useEffect(() => {
-    initializeRecognition();
+    initRecognition();
     return () => {
       if (recognition.current) {
         recognition.current.stop();
+      }
+      if (mediaRecorder.current) {
+        mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
   const startRecording = async () => {
     try {
-      // 确保语音识别已初始化
-      if (!recognition.current) {
-        initializeRecognition();
-      }
+      setRecognizedText('');
+      chunks.current = [];
+      recordingStartTime.current = Date.now();
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder.current = new MediaRecorder(stream);
-      chunks.current = [];
 
       mediaRecorder.current.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -98,56 +99,46 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplet
         }
       };
 
-      mediaRecorder.current.onstop = () => {
-        const blob = new Blob(chunks.current, { type: 'audio/wav' });
-        onRecordingComplete(blob, recognizedText);
-        chunks.current = [];
-        setRecognizedText('');
-      };
-
-      // 先启动语音识别，等待一小段时间再开始录音
-      await new Promise<void>((resolve) => {
-        recognition.current.start();
-        setTimeout(resolve, 500);
-      });
-
+      // Start recognition first
+      recognition.current.start();
+      // Then start recording
       mediaRecorder.current.start();
       setIsRecording(true);
     } catch (err) {
-      console.error('Error accessing microphone:', err);
-      alert('Unable to access microphone. Please ensure you have granted permission.');
+      console.error('Error starting recording:', err);
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
-      mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
-      if (recognition.current) {
-        recognition.current.stop();
+      // If we have recognized text, use it immediately
+      if (recognizedText) {
+        handleRecognitionComplete(recognizedText);
+      } else {
+        // Otherwise, just stop everything
+        mediaRecorder.current.stop();
+        mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
+        recognition.current?.stop();
+        setIsRecording(false);
       }
-      setIsRecording(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="text-2xl font-bold mb-4">
-        {isRecording ? 'Recording...' : 'Click to start speaking'}
-      </div>
+    <div className="flex flex-col items-center">
       {recognizedText && (
-        <div className="text-lg text-gray-600 max-w-lg text-center mb-4">
+        <div className="text-sm text-gray-600 mb-4 text-center">
           {recognizedText}
         </div>
       )}
       <button
         onClick={isRecording ? stopRecording : startRecording}
-        className={`w-16 h-16 rounded-full flex items-center justify-center ${
-          isRecording ? 'bg-red-500' : 'bg-blue-500'
+        className={`w-14 h-14 rounded-full flex items-center justify-center transition-colors ${
+          isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
         } text-white`}
-        disabled={disabled || !isRecognitionReady}
+        disabled={disabled}
       >
-        {isRecording ? <Square className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+        {isRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
       </button>
     </div>
   );
