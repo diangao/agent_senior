@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { Card, CardContent } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 interface Message {
@@ -19,11 +20,21 @@ interface Action {
   label: string;
   handler: () => void;
   type?: 'primary' | 'secondary' | 'danger';
+  response?: string;
   nextActions?: Action[];
 }
 
 let messageIdCounter = 0;
 const getUniqueId = () => `msg_${Date.now()}_${messageIdCounter++}`;
+
+const getEmergencyContacts = () => {
+  const savedMembers = localStorage.getItem('familyMembers');
+  if (savedMembers) {
+    const members = JSON.parse(savedMembers);
+    return members.filter((member: any) => member.isEmergencyContact);
+  }
+  return [];
+};
 
 const scenarios = {
   emergency: {
@@ -35,10 +46,6 @@ const scenarios = {
         response: "Emergency services have been notified. They are on their way.",
         nextActions: [
           {
-            label: "Call 911",
-            response: "Dialing 911 emergency services..."
-          },
-          {
             label: "Track Response Status",
             response: "Emergency response team is 5 minutes away..."
           }
@@ -49,10 +56,6 @@ const scenarios = {
         response: "Family members have been notified. They will contact you shortly.",
         nextActions: [
           {
-            label: "Call Primary Contact",
-            response: "Calling your primary emergency contact..."
-          },
-          {
             label: "Send Status Update",
             response: "Sending status update to family members..."
           }
@@ -60,7 +63,6 @@ const scenarios = {
       }
     ]
   },
-  
   health: {
     text: "I can help you with health monitoring. What would you like to do?",
     actions: [
@@ -99,6 +101,8 @@ const scenarios = {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
+
 
   const handleAction = useCallback(async (action: Action) => {
     setIsProcessing(true);
@@ -112,12 +116,28 @@ export default function Home() {
     setMessages(prev => [...prev, actionMessage]);
 
     try {
-      // 模拟处理时间
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+
+      let responseMessage = '';
+      
+      // Handle different action types
+      if (action.label === "Notify Family Members") {
+        const emergencyContacts = getEmergencyContacts();
+        if (emergencyContacts.length > 0) {
+          const contactsList = emergencyContacts
+            .map((contact: any) => `${contact.name} (${contact.phone})`)
+            .join(', ');
+          responseMessage = `Notifying emergency contacts: ${contactsList}`;
+        } else {
+          responseMessage = "No emergency contacts found. Please add emergency contacts in your profile.";
+        }
+      } else {
+        responseMessage = action.response || `${action.label} has been processed successfully.`;
+      }
 
       const resultMessage: Message = {
         id: getUniqueId(),
-        content: action.response || `${action.label} has been processed successfully.`,
+        content: responseMessage,
         isUser: false,
         timestamp: new Date(),
         status: 'success'
@@ -214,16 +234,22 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-xl mx-auto">
+        {/* Header with Profile Link */}
         <div className="flex justify-between items-center mb-4 p-4 bg-white rounded-lg shadow">
           <h1 className="text-xl font-bold">Voice Assistant</h1>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <Button variant="outline">Sign In</Button>
-            </SignInButton>
-          </SignedOut>
+          <div className="flex items-center gap-4">
+            <SignedIn>
+              <Button variant="outline" onClick={() => router.push('/profile')}>
+                Family Contacts
+              </Button>
+              <UserButton afterSignOutUrl="/" />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="outline">Sign In</Button>
+              </SignInButton>
+            </SignedOut>
+          </div>
         </div>
 
         <Card>
