@@ -232,14 +232,14 @@ export default function Home() {
   }, [handleAction]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-xl mx-auto">
-        {/* Header with Profile Link */}
-        <div className="flex justify-between items-center mb-4 p-4 bg-white rounded-lg shadow">
-          <h1 className="text-xl font-bold">Voice Assistant</h1>
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white p-6 flex flex-col items-center">
+      <div className="max-w-xl w-full">
+        {/* Header Section */}
+        <div className="flex justify-between items-center mb-6 bg-white p-5 shadow-lg rounded-xl">
+          <h1 className="text-2xl font-bold text-gray-800">Voice Assistant</h1>
           <div className="flex items-center gap-4">
             <SignedIn>
-              <Button variant="outline" onClick={() => router.push('/profile')}>
+              <Button onClick={() => router.push("/profile")} className="bg-blue-600 text-white">
                 Family Contacts
               </Button>
               <UserButton afterSignOutUrl="/" />
@@ -252,65 +252,38 @@ export default function Home() {
           </div>
         </div>
 
-        <Card>
+        {/* Chat Section */}
+        <Card className="shadow-xl rounded-xl">
           <CardContent className="p-6">
             <SignedIn>
               <div className="space-y-6">
                 <div className="space-y-4 mb-6 min-h-[300px] max-h-[600px] overflow-y-auto">
-                  {messages.map((message) => (
-                    <div key={message.id} className="space-y-2">
-                      <div
-                        className={`p-4 rounded-lg ${
-                          message.isUser 
-                            ? 'bg-blue-100 ml-auto max-w-[80%]' 
-                            : 'bg-gray-100 mr-auto max-w-[80%]'
-                        } ${
-                          message.status === 'error' ? 'border-red-500 border' :
-                          message.status === 'success' ? 'border-green-500 border' :
-                          message.status === 'pending' ? 'border-yellow-500 border' : ''
-                        }`}
-                      >
-                        <p className="text-gray-800">{message.content}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
-                        </p>
-                      </div>
-                      {message.actions && (
-                        <div className="mt-2 space-y-2">
-                          {message.actions.map((action, index) => (
-                            <Button
-                              key={`${message.id}_action_${index}`}
-                              onClick={action.handler}
-                              className="w-full"
-                              variant={action.type === 'danger' ? 'destructive' : 'outline'}
-                              disabled={isProcessing}
-                            >
-                              {action.label}
-                            </Button>
-                          ))}
+                  {messages.length === 0 ? (
+                    <p className="text-center text-gray-500">Start a conversation...</p>
+                  ) : (
+                    messages.map((message) => (
+                      <div key={message.id} className="space-y-2">
+                        <div className={`p-4 rounded-xl ${message.isUser ? "bg-blue-100 ml-auto max-w-[80%]" : "bg-gray-100 mr-auto max-w-[80%]"}`}>
+                          <p className="text-gray-800">{message.content}</p>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))
+                  )}
                 </div>
 
+                {/* Voice Input */}
                 <div className="sticky bottom-0 bg-white p-4 rounded-lg shadow">
-                  <VoiceRecorder 
-                    onRecordingComplete={handleRecordingComplete}
-                    disabled={isProcessing} 
-                  />
+                  <VoiceRecorder />
                 </div>
               </div>
             </SignedIn>
+
+            {/* Sign-in Prompt */}
             <SignedOut>
               <div className="text-center py-10">
-                <h2 className="text-xl font-semibold mb-4">
-                  Please sign in to use the Voice Assistant
-                </h2>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4">Please sign in to use the Voice Assistant</h2>
                 <SignInButton mode="modal">
-                  <Button size="lg">
-                    Sign In to Continue
-                  </Button>
+                  <Button size="lg" className="bg-blue-600 text-white">Sign In to Continue</Button>
                 </SignInButton>
               </div>
             </SignedOut>

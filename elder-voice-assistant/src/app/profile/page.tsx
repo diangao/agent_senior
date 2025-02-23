@@ -81,107 +81,45 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Family Contacts</h1>
+    <div className="min-h-screen bg-gradient-to-b from-green-100 to-white p-6 flex flex-col items-center">
+      <div className="max-w-xl w-full">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6 bg-white p-5 shadow-lg rounded-xl">
+          <h1 className="text-2xl font-bold text-gray-800">Family Contacts</h1>
           <Button variant="outline" onClick={() => router.push("/")}>⬅ Back</Button>
         </div>
 
-        {/* Add New Family Member Form */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div>
-                <Label>Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter name" />
-              </div>
-              <div>
-                <Label>Relation</Label>
-                <Input value={relation} onChange={(e) => setRelation(e.target.value)} placeholder="e.g., Father, Sister" />
-              </div>
-              <div>
-                <Label>Phone Number</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g., +1 234 567 890" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox checked={isEmergencyContact} onCheckedChange={(checked) => setIsEmergencyContact(!!checked)} />
-                <Label>Mark as Emergency Contact</Label>
-              </div>
-              <Button onClick={addFamilyMember} className="w-full">Add Family Member</Button>
+        {/* Add Contact Form */}
+        <Card className="shadow-xl rounded-xl">
+          <CardContent className="p-6 space-y-4">
+            <Label>Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter name" />
+            <Label>Relation</Label>
+            <Input value={relation} onChange={(e) => setRelation(e.target.value)} placeholder="Father, Sister, etc." />
+            <Label>Phone Number</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 234 567 890" />
+            <div className="flex items-center gap-2">
+              <Checkbox checked={isEmergencyContact} onCheckedChange={(checked) => setIsEmergencyContact(!!checked)} />
+              <Label>Mark as Emergency Contact</Label>
             </div>
+            <Button onClick={addFamilyMember} className="bg-green-600 text-white w-full">Add Family Member</Button>
           </CardContent>
         </Card>
 
-        {/* List of Family Members */}
+        {/* List of Contacts */}
         <div className="mt-6 space-y-4">
           {familyMembers.length === 0 ? (
             <p className="text-center text-gray-500">No family members added yet.</p>
           ) : (
             familyMembers.map((member) => (
-              <Card key={member.id}>
+              <Card key={member.id} className="shadow-md rounded-xl">
                 <CardContent className="p-4 flex justify-between items-center">
                   <div>
-                    <p className="font-semibold">{member.name}</p>
-                    <p className="text-sm text-gray-500">{member.relation} • {member.phone}</p>
+                    <p className="font-semibold text-lg">{member.name}</p>
+                    <p className="text-sm text-gray-600">{member.relation} • {member.phone}</p>
                     {member.isEmergencyContact && <p className="text-xs text-red-600 font-bold">Emergency Contact</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="secondary" onClick={() => editFamilyMember(member)}>Edit</Button>
-                      </DialogTrigger>
-                      {editingMember && editingMember.id === member.id && (
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Family Member</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div>
-                              <Label>Name</Label>
-                              <Input
-                                value={editingMember.name}
-                                onChange={(e) =>
-                                  setEditingMember({ ...editingMember, name: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div>
-                              <Label>Relation</Label>
-                              <Input
-                                value={editingMember.relation}
-                                onChange={(e) =>
-                                  setEditingMember({ ...editingMember, relation: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div>
-                              <Label>Phone Number</Label>
-                              <Input
-                                value={editingMember.phone}
-                                onChange={(e) =>
-                                  setEditingMember({ ...editingMember, phone: e.target.value })
-                                }
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={editingMember.isEmergencyContact}
-                                onCheckedChange={(checked) =>
-                                  setEditingMember({ ...editingMember, isEmergencyContact: !!checked })
-                                }
-                              />
-                              <Label>Emergency Contact</Label>
-                            </div>
-                          </div>
-                          <DialogFooter>
-                            <Button onClick={updateFamilyMember}>Save Changes</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      )}
-                    </Dialog>
-                    <Button variant="destructive" onClick={() => deleteFamilyMember(member.id)}>Delete</Button>
-                  </div>
+                  <Button variant="destructive" onClick={() => setFamilyMembers(familyMembers.filter(m => m.id !== member.id))}>Delete</Button>
                 </CardContent>
               </Card>
             ))
